@@ -16,6 +16,8 @@
         "data": {
           "auto_discovery": "启用自动设备发现",
           "use_device_mapping": "使用预设的设备房间名称映射",
+          "enable_polling": "启用轮询功能（主动查询设备状态）",
+          "polling_interval": "轮询间隔（秒）",
           "discovery_timeout": "发现超时时间（秒）"
         }
       },

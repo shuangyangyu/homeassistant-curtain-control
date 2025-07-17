@@ -56,10 +56,32 @@ def generate_command(device_address: int, function_code: int, data_address: int,
     return command + struct.pack('<H', crc)
 
 
+def generate_query_position_command(device_address: int) -> bytes:
+    """Generate query position command for a device.
+    
+    Format: 55 + 设备地址 + 01 + 02 + 01 + CRC16
+    - 55: 起始码 (固定)
+    - 设备地址: 变化的 (如 09FE, 06FE 等)
+    - 01: 读命令 (固定)
+    - 02: 数据地址 (固定，位置数据地址)
+    - 01: 数据长度 (固定，读取1个字节)
+    - CRC16: 校验码
+    
+    Example: 55 09 FE 01 02 01 70 97
+    """
+    # 固定的位置查询参数
+    POSITION_DATA_ADDRESS = 0x02  # 位置数据地址，固定
+    POSITION_DATA_LENGTH = 0x01   # 数据长度，固定
+    
+    command = struct.pack('>BHB', 0x55, device_address, 0x01) + struct.pack('>BB', POSITION_DATA_ADDRESS, POSITION_DATA_LENGTH)
+    crc = calculate_crc(command)
+    return command + struct.pack('<H', crc)
+
+
 class CurtainTCPCoordinator(DataUpdateCoordinator):
     """Coordinator for managing TCP connection and device communication."""
 
-    def __init__(self, hass: HomeAssistant, host: str, port: int):
+    def __init__(self, hass: HomeAssistant, host: str, port: int, enable_polling: bool = False, polling_interval: int = 5):
         """Initialize the coordinator."""
         super().__init__(
             hass,
@@ -84,6 +106,11 @@ class CurtainTCPCoordinator(DataUpdateCoordinator):
         # Discovery
         self._discovered_devices: list[int] = []
         self._discovery_callbacks: list[Callable] = []
+        
+        # Polling
+        self._enable_polling = enable_polling
+        self._polling_interval = polling_interval
+        self._polling_task: asyncio.Task | None = None
 
     @property
     def host(self) -> str:
@@ -119,6 +146,10 @@ class CurtainTCPCoordinator(DataUpdateCoordinator):
 
         # Start the TCP listening task
         self._listen_task = asyncio.create_task(self._async_listen_loop())
+        
+        # Start polling if enabled
+        await self.start_polling()
+        
         return True
 
     async def async_shutdown(self):
@@ -332,3 +363,57 @@ class CurtainTCPCoordinator(DataUpdateCoordinator):
                     [f"0x{addr:04X}" for addr in new_devices])
 
         return self._discovered_devices.copy()
+
+    async def _polling_task_loop(self):
+        """轮询任务循环，定期查询设备位置."""
+        _LOGGER.info("🔄 轮询任务已启动，间隔: %d秒", self._polling_interval)
+        
+        while self._polling_task and not self._polling_task.cancelled():
+            try:
+                # 为每个已注册的设备发送查询位置命令
+                for device_address in self._devices.keys():
+                    try:
+                        query_command = generate_query_position_command(device_address)
+                        await self._send_raw_command(query_command)
+                        _LOGGER.debug("📤 发送轮询命令到设备 0x%04X: %s", 
+                                    device_address, bytes_to_hex(query_command))
+                        
+                        # 在设备之间添加小延迟，避免命令冲突
+                        await asyncio.sleep(0.1)
+                        
+                    except Exception as e:
+                        _LOGGER.error("❌ 轮询设备 0x%04X 时出错: %s", device_address, e)
+                
+                # 等待下次轮询
+                await asyncio.sleep(self._polling_interval)
+                
+            except asyncio.CancelledError:
+                _LOGGER.info("🛑 轮询任务已取消")
+                break
+            except Exception as e:
+                _LOGGER.error("❌ 轮询任务出错: %s", e)
+                await asyncio.sleep(self._polling_interval)
+
+    async def start_polling(self):
+        """启动轮询任务."""
+        if not self._enable_polling:
+            _LOGGER.debug("轮询功能未启用，跳过启动轮询任务")
+            return
+            
+        if self._polling_task and not self._polling_task.done():
+            _LOGGER.debug("轮询任务已在运行")
+            return
+            
+        _LOGGER.info("🚀 启动轮询任务")
+        self._polling_task = asyncio.create_task(self._polling_task_loop())
+
+    async def stop_polling(self):
+        """停止轮询任务."""
+        if self._polling_task and not self._polling_task.done():
+            _LOGGER.info("🛑 停止轮询任务")
+            self._polling_task.cancel()
+            try:
+                await self._polling_task
+            except asyncio.CancelledError:
+                pass
+            self._polling_task = None

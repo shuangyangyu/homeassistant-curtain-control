@@ -14,8 +14,11 @@ from .const import (
     CONF_AUTO_DISCOVERY,
     CONF_DEVICES,
     CONF_DISCOVERY_TIMEOUT,
+    CONF_ENABLE_POLLING,
+    CONF_POLLING_INTERVAL,
     CONF_USE_DEVICE_MAPPING,
     DEFAULT_DISCOVERY_TIMEOUT,
+    DEFAULT_POLLING_INTERVAL,
     DEFAULT_PORT,
     DOMAIN,
     ERROR_CANNOT_CONNECT,
@@ -106,9 +109,13 @@ class CurtainControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             auto_discovery = user_input.get(CONF_AUTO_DISCOVERY, True)
             discovery_timeout = user_input.get(CONF_DISCOVERY_TIMEOUT, DEFAULT_DISCOVERY_TIMEOUT)
             use_device_mapping = user_input.get(CONF_USE_DEVICE_MAPPING, True)
+            enable_polling = user_input.get(CONF_ENABLE_POLLING, False)
+            polling_interval = user_input.get(CONF_POLLING_INTERVAL, DEFAULT_POLLING_INTERVAL)
 
-            # Store the mapping setting for later use
+            # Store the mapping and polling settings for later use
             self._use_device_mapping = use_device_mapping
+            self._enable_polling = enable_polling
+            self._polling_interval = polling_interval
 
             if auto_discovery:
                 # Perform device discovery
@@ -144,12 +151,18 @@ class CurtainControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_PORT: self._port,
                         CONF_DEVICES: [],
                         CONF_USE_DEVICE_MAPPING: use_device_mapping,
+                        CONF_ENABLE_POLLING: enable_polling,
+                        CONF_POLLING_INTERVAL: polling_interval,
                     }
                 )
 
         data_schema = vol.Schema({
             vol.Optional(CONF_AUTO_DISCOVERY, default=True): cv.boolean,
             vol.Optional(CONF_USE_DEVICE_MAPPING, default=True): cv.boolean,
+            vol.Optional(CONF_ENABLE_POLLING, default=False): cv.boolean,
+            vol.Optional(CONF_POLLING_INTERVAL, default=DEFAULT_POLLING_INTERVAL): vol.All(
+                cv.positive_int, vol.Range(min=2, max=60)
+            ),
             vol.Optional(CONF_DISCOVERY_TIMEOUT, default=DEFAULT_DISCOVERY_TIMEOUT): vol.All(
                 cv.positive_int, vol.Range(min=10, max=120)
             ),
@@ -200,6 +213,8 @@ class CurtainControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_PORT: self._port,
                     CONF_DEVICES: devices,
                     CONF_USE_DEVICE_MAPPING: getattr(self, '_use_device_mapping', True),
+                    CONF_ENABLE_POLLING: getattr(self, '_enable_polling', False),
+                    CONF_POLLING_INTERVAL: getattr(self, '_polling_interval', DEFAULT_POLLING_INTERVAL),
                 }
             )
 
