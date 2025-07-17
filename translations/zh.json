@@ -1,0 +1,78 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "窗帘控制器配置",
+        "description": "配置窗帘控制器的连接信息",
+        "data": {
+          "host": "主机地址",
+          "port": "端口",
+          "name": "名称"
+        }
+      },
+      "discovery": {
+        "title": "设备发现",
+        "description": "扫描并发现连接到 {host}:{port} 的窗帘设备",
+        "data": {
+          "auto_discovery": "启用自动设备发现",
+          "use_device_mapping": "使用预设的设备房间名称映射",
+          "discovery_timeout": "发现超时时间（秒）"
+        }
+      },
+      "device_selection": {
+        "title": "选择设备",
+        "description": "选择要添加到 Home Assistant 的设备（发现了 {device_count} 个设备）",
+        "data": {
+          "selected_devices": "选择设备"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到窗帘控制器",
+      "no_devices_found": "未发现任何设备",
+      "device_not_responding": "设备无响应",
+      "no_devices_selected": "请至少选择一个设备"
+    },
+    "abort": {
+      "already_configured": "该主机和端口已配置"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "配置选项",
+        "description": "更新窗帘控制器配置",
+        "data": {
+          "rediscover": "重新发现设备",
+          "manage_devices": "管理现有设备"
+        }
+      },
+      "rediscover": {
+        "title": "重新发现设备",
+        "description": "扫描新设备",
+        "data": {
+          "timeout": "扫描超时时间（秒）"
+        }
+      },
+      "select_new_devices": {
+        "title": "选择新设备",
+        "description": "发现了 {device_count} 个新设备，选择要添加的设备",
+        "data": {
+          "selected_devices": "选择新设备"
+        }
+      },
+      "manage_devices": {
+        "title": "管理设备",
+        "description": "管理现有的 {device_count} 个设备",
+        "data": {
+          "devices_to_remove": "要移除的设备"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接到窗帘控制器",
+      "no_devices_found": "未发现新设备",
+      "no_devices_selected": "请至少选择一个设备"
+    }
+  }
+} 

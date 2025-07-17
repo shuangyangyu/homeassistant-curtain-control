@@ -1,0 +1,9 @@
+{
+  "domain": "curtain_control",
+  "name": "Curtain Control",
+  "version": "2.0",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": ["@your_github_username"],
+  "config_flow": true
+}
